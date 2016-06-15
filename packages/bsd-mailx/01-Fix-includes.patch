@@ -1,0 +1,85 @@
+From: Robert Luberda <robert@debian.org>
+Date: Sun, 6 Nov 2011 23:03:12 +0100
+Subject: 01 Fix includes
+
+---
+ def.h   | 4 +++-
+ edit.c  | 6 ++++++
+ list.c  | 3 +++
+ names.c | 1 +
+ send.c  | 1 +
+ 5 files changed, 14 insertions(+), 1 deletion(-)
+
+diff --git a/def.h b/def.h
+index 3a26cc7..7271258 100644
+--- a/def.h
++++ b/def.h
+@@ -50,10 +50,12 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
++#include <bsd/string.h>
+ #include <termios.h>
+ #include <unistd.h>
+ #include <limits.h>
+-#include <vis.h>
++#include <bsd/vis.h>
++#include <stdarg.h>
+ #include "pathnames.h"
+ 
+ #define	APPEND				/* New mail goes to end of mailbox */
+diff --git a/edit.c b/edit.c
+index cf14a37..d7a4732 100644
+--- a/edit.c
++++ b/edit.c
+@@ -30,6 +30,12 @@
+  * SUCH DAMAGE.
+  */
+ 
++#ifdef DEBIAN
++/* needed for asprintf */
++#define _GNU_SOURCE
++#include <string.h>
++#endif
++
+ #include <sys/types.h>
+ #include <sys/wait.h>
+ 
+diff --git a/list.c b/list.c
+index c870b9b..9db1bf8 100644
+--- a/list.c
++++ b/list.c
+@@ -30,6 +30,9 @@
+  * SUCH DAMAGE.
+  */
+ 
++#define _GNU_SOURCE // for strcasestr
++#include <string.h> // for strcasestr
++
+ #include "rcv.h"
+ #include <ctype.h>
+ #include "extern.h"
+diff --git a/names.c b/names.c
+index 5562070..42ce32e 100644
+--- a/names.c
++++ b/names.c
+@@ -38,6 +38,7 @@
+ 
+ #include "rcv.h"
+ #include <fcntl.h>
++#include <time.h>
+ #include "extern.h"
+ 
+ /*
+diff --git a/send.c b/send.c
+index 8f127ac..59baa81 100644
+--- a/send.c
++++ b/send.c
+@@ -30,6 +30,7 @@
+  * SUCH DAMAGE.
+  */
+ 
++#include <time.h>
+ #include "rcv.h"
+ #include "extern.h"
+ 
