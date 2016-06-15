@@ -1,0 +1,90 @@
+diff --git a/src/Makefile b/src/Makefile
+index b50586b..cd8912c 100644
+--- a/src/Makefile
++++ b/src/Makefile
+@@ -5,7 +5,7 @@ VERSION?= $(shell git describe --tags --long | cut -d - -f 1,2 | tr - .)
+ SQLITE?=0
+
+ DESTDIR?=/
+-PREFIX?=/usr
++PREFIX?=@TERMUX_PREFIX@
+ SBINDIR=$(PREFIX)/sbin
+ MANDIR=$(PREFIX)/share/man
+ DATADIR=$(PREFIX)/share
+@@ -44,7 +44,7 @@ DATAFILES = pci.ids usb.ids oui.txt manuf.txt
+ all: $(PACKAGENAME) $(PACKAGENAME).1 $(DATAFILES)
+
+ .cc.o:
+-	$(CXX) $(CXXFLAGS) -c $< -o $@
++	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
+
+ .PHONY: core
+ core:
+diff --git a/src/core/Makefile b/src/core/Makefile
+index 5bf5a69..03e1d58 100644
+--- a/src/core/Makefile
++++ b/src/core/Makefile
+@@ -1,6 +1,6 @@
+ PACKAGENAME?=lshw
+
+-CXX=c++
++CXX?=c++
+ INCLUDES=
+ DEFINES=-DPREFIX=\"$(PREFIX)\" -DSBINDIR=\"$(SBINDIR)\" -DMANDIR=\"$(MANDIR)\" -DDATADIR=\"$(DATADIR)\"
+ CXXFLAGS?=-g -Wall $(INCLUDES) $(DEFINES) $(RPM_OPT_FLAGS)
+@@ -17,7 +17,7 @@ SRCS = $(OBJS:.o=.cc)
+ all: lib$(PACKAGENAME).a
+
+ .cc.o:
+-	$(CXX) $(CXXFLAGS) -c $< -o $@
++	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
+
+ lib$(PACKAGENAME).a: $(OBJS)
+ 	$(AR) rs $@ $^
+diff --git a/src/core/osutils.cc b/src/core/osutils.cc
+index 95c8483..460a919 100644
+--- a/src/core/osutils.cc
++++ b/src/core/osutils.cc
+@@ -595,7 +595,7 @@ int open_dev(dev_t dev, int dev_type, const string & name)
+       snprintf(fn, sizeof(fn), "%s/lshw-%d", *p, getpid());
+     else
+       snprintf(fn, sizeof(fn), "%s", name.c_str());
+-    if ((mknod(fn, (dev_type | S_IREAD), dev) == 0) || (errno == EEXIST))
++    if ((mknod(fn, (dev_type | S_IRUSR), dev) == 0) || (errno == EEXIST))
+     {
+       fd = open(fn, O_RDONLY);
+       if(name=="") unlink(fn);
+diff --git a/src/core/scsi.cc b/src/core/scsi.cc
+index afc582b..1e16fdd 100644
+--- a/src/core/scsi.cc
++++ b/src/core/scsi.cc
+@@ -5,7 +5,6 @@
+ #include "osutils.h"
+ #include "heuristics.h"
+ #include "sysfs.h"
+-#include <glob.h>
+ #include <sys/types.h>
+ #include <sys/stat.h>
+ #include <sys/ioctl.h>
+diff --git a/src/core/version.cc b/src/core/version.cc
+index c9dc899..3dc803c 100644
+--- a/src/core/version.cc
++++ b/src/core/version.cc
+@@ -22,6 +22,9 @@
+ #define PACKETSZ 512
+ #endif
+
++#ifdef __BIONIC__
++    int res_init (void);
++#endif
+
+ static char versiontag[] = "@(#) $URL$ >";
+
+@@ -64,8 +67,6 @@ static char *txtquery(const char *name, const char *domain, unsigned int *ttl)
+     return NULL;
+
+   memset(answer, 0, PACKETSZ);
+-  if((len = res_querydomain(name, domain, C_IN, T_TXT, answer, PACKETSZ)) < 0)
+-    return NULL;
+
+   pt = answer + sizeof(HEADER);
